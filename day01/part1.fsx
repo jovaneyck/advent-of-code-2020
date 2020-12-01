@@ -5,19 +5,17 @@ let path = $@"{__SOURCE_DIRECTORY__}\input.txt"
 let input = System.IO.File.ReadAllLines path |> Seq.map int
 
 let rec combinations list =
-    match list with
-    | [] -> []
-    | x :: xs ->
-        let firstPairs = xs |> List.map (fun y -> (x,y))
-        firstPairs @ (combinations xs)
+    let indexed = list |> List.indexed
+    [ for (i,x) in indexed do
+      for (j,y) in indexed.[i+1..] -> 
+        (x,y)]
 
 let rec combinations3 list =
-    match list with
-    | [] -> []
-    | x :: xs ->
-        let combos = combinations xs
-        let firstPairs = combos |> List.map (fun (y,z) -> (x,y,z))
-        firstPairs @ (combinations3 xs)
+    let indexed = list |> List.indexed
+    [ for (i,x) in indexed do
+      for (j,y) in indexed.[i+1..] do 
+      for (k,z) in indexed.[j+1..] -> 
+        (x,y,z)]
 
 input 
 |> Seq.toList 
