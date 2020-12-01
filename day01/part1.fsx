@@ -4,13 +4,13 @@ open Swensen.Unquote
 let path = $@"{__SOURCE_DIRECTORY__}\input.txt"
 let input = System.IO.File.ReadAllLines path |> Seq.map int
 
-let rec combinations list =
+let combinations list =
     let indexed = list |> List.indexed
     [ for (i,x) in indexed do
       for (j,y) in indexed.[i+1..] -> 
         (x,y)]
 
-let rec combinations3 list =
+let combinations3 list =
     let indexed = list |> List.indexed
     [ for (i,x) in indexed do
       for (j,y) in indexed.[i+1..] do 
