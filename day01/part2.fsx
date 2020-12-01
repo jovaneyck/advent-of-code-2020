@@ -4,7 +4,7 @@ open Swensen.Unquote
 let path = $@"{__SOURCE_DIRECTORY__}\input.txt"
 let input = System.IO.File.ReadAllLines path |> Seq.map int
 
-let rec combinations list =
+let combinations list =
     let rec combinations acc list =
         match list with
         |x :: xs -> 
