@@ -2,3 +2,4 @@
 .fake
 /.idea/
 *.suo
+/.vs/slnx.sqlite
