@@ -1,8 +1,7 @@
 ﻿#r @"nuget: Unquote"
 open Swensen.Unquote
 
-let path = $@"{__SOURCE_DIRECTORY__}\input.txt"
-let input = System.IO.File.ReadAllLines path
+let input = System.IO.File.ReadAllLines $@"{__SOURCE_DIRECTORY__}\input.txt"
 
 printf "Testing..."
 test <@ 1 + 1 = 4 @>
