@@ -5,19 +5,6 @@ open Swensen.Unquote
 open FSharp.Text.RegexProvider
 
 let input = System.IO.File.ReadAllText $@"{__SOURCE_DIRECTORY__}\input.txt"
-let example = @"ecl:gry pid:860033327 eyr:2020 hcl:#fffffd
-byr:1937 iyr:2017 cid:147 hgt:183cm
-
-iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884
-hcl:#cfa07d byr:1929
-
-hcl:#ae17e1 iyr:2013
-eyr:2024
-ecl:brn pid:760753108 byr:1931
-hgt:179cm
-
-hcl:#cfa07d eyr:2025 pid:166559648
-iyr:2011 ecl:brn hgt:59in"
 
 type KVP = { Key : string; Value : string }
 type Passport = KVP list
@@ -33,9 +20,9 @@ let parse (text : string) =
     text.Split([|"\r\n\r\n"|], System.StringSplitOptions.None)
     |> Seq.map parsePassport
 
-let requiredKeys = ["byr"; "iyr"; "eyr"; "hgt"; "hcl"; "ecl"; "pid"]
-
 let hasRequiredKeys (passport : Passport) = 
+    let requiredKeys = ["byr"; "iyr"; "eyr"; "hgt"; "hcl"; "ecl"; "pid"]
+    
     requiredKeys
     |> Seq.forall (fun k -> passport |> List.exists (fun kvp -> kvp.Key = k))
 
@@ -55,22 +42,13 @@ let validHeight (h : string) =
         | "in" -> 59 <= h && h <= 76
 
 type HairColor = Regex<"^#([0-9]|[a-f]){6}$">
-let hairColorRegex = HairColor()
-let validHairColor (text : string) =
-    match hairColorRegex.TryTypedMatch(text) with
-    | Some _ -> true
-    | _ -> false
+let validHairColor = HairColor().IsMatch
 
-let validEyeColor text =
-    ["amb"; "blu"; "brn"; "gry"; "grn"; "hzl"; "oth"]
-    |> List.exists ((=) text)
+type EyeColor = Regex<"^amb|blu|brn|gry|grn|hzl|oth$">
+let validEyeColor = EyeColor().IsMatch
 
 type PassportId = Regex<"^[0-9]{9}$">
-let passportIdRegex = PassportId()
-let validPassportId text = 
-    match passportIdRegex.TryTypedMatch text with
-    | Some _ -> true
-    | _ -> false
+let validPassportId = PassportId().IsMatch 
 
 let validKVP (kvp : KVP) = 
     match kvp.Key with
@@ -88,7 +66,7 @@ let isValid (passport : Passport) =
 
 let passports = parse input
 Seq.length passports
-passports |> Seq.filter isValid |> Seq.length
+let answer = passports |> Seq.filter isValid |> Seq.length
 
 printf "Testing..."
 printfn "done!"
