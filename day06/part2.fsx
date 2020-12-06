@@ -6,7 +6,7 @@ let split (separator : string) (s:string) =
 
 let input = System.IO.File.ReadAllText $@"{__SOURCE_DIRECTORY__}\input.txt"
 let groups = split "\r\n\r\n" input
-groups |> Seq.map (fun g -> g |> split "\r\n" |> Seq.map Set.ofSeq |> Set.intersectMany)
+groups |> Seq.map (fun g -> g |> split "\r\n" |> Seq.map Set.ofSeq |> Set.intersectMany |> Seq.length) |> Seq.sum
 
 printf "Test.."
 
