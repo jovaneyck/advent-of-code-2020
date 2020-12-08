@@ -62,8 +62,7 @@ let run input =
     input
     |> parseProgram
     |> variants
-    |> Seq.choose (runProgram init)
-    |> Seq.head
+    |> Seq.pick (runProgram init)
     |> (fun s -> s.accumulator)
 
 let part2 = run input
