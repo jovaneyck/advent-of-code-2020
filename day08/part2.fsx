@@ -46,15 +46,16 @@ let rec runProgram state instructions : State option =
 let rec variants : Instruction list -> Instruction list seq =
     function
     | [] -> Seq.singleton List.empty
-    | Acc a :: prog -> variants prog |> Seq.map (List.append [Acc a])
+    | Acc a :: prog -> 
+        variants prog |> Seq.map (List.append [Acc a])
     | Jmp j :: prog -> 
-        let nonFlipped = variants prog |> Seq.map (List.append [Jmp j])
         let flipped = [Nop j :: prog]
-        Seq.append nonFlipped flipped
+        let nonFlipped = variants prog |> Seq.map (List.append [Jmp j])
+        Seq.append flipped nonFlipped
     | Nop n :: prog -> 
-        let nonFlipped = variants prog |> Seq.map (List.append [Nop n])
         let flipped = [Jmp n :: prog]
-        Seq.append nonFlipped flipped
+        let nonFlipped = variants prog |> Seq.map (List.append [Nop n])
+        Seq.append flipped nonFlipped
 
 let parseProgram = Seq.map parse >> List.ofSeq
 let run input =
