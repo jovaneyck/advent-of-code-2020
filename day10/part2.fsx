@@ -21,13 +21,14 @@ let rec calculateArrangements (memo : Map<int64,int64>) joltage adapters =
             let newMemo = candidates |> Seq.fold (fun memo (a,aas) -> calculateArrangements memo a aas) memo
             let sum = candidates |> Seq.map fst |> Seq.map (fun c -> newMemo |> Map.find c) |> Seq.sum
             newMemo |> Map.add joltage sum
-
+             
 let solve adapters =
     let sorted = adapters |> List.sort
     let deviceAdapter = 3L + (sorted |> Seq.last)
     let includingDevice = sorted @ [deviceAdapter]
     
-    calculateArrangements Map.empty 0L includingDevice |> Map.find 0L
+    calculateArrangements Map.empty 0L includingDevice 
+    |> Map.find 0L
 
 let smallExample = [1L; 4L; 5L; 6L; 7L; 10L; 11L; 12L; 15L; 16L; 19L]
 let largerExample = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\larger-example.txt" |> Seq.map int64 |> Seq.toList
