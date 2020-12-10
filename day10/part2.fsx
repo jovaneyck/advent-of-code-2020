@@ -14,19 +14,9 @@ let rec calculateArrangements startJoltage adapters : int =
     | [] -> 1
     | [_] -> 1
     | adapters ->
-        //printfn "calculate"
-        //printfn $"Joltage: {startJoltage}"
-        //printfn $"Adapters: {adapters}"
         let candidates = candidates startJoltage adapters
-        //printfn $"Candidates:"
-        //candidates |> Seq.iter (printfn "%A")
-
-        let numberPaths = candidates |> Seq.length
-        //printfn $"numberPaths: {numberPaths}"
-
         candidates 
         |> Seq.map (fun (a,aas) -> calculateArrangements a aas) 
-        //|> (fun x-> printfn "recursive current joltage %A: %A" startJoltage (x |> Seq.toList);  x)
         |> Seq.sum
    
 
