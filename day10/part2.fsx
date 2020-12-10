@@ -5,48 +5,37 @@ let candidates startJoltage adapters =
     let rec candidates' acc startJoltage adapters =
         match adapters with
         | [] -> acc
-        | a :: adapts when startJoltage - a <= 3L -> (candidates' ((a, adapts) ::acc) startJoltage adapts)
-        | _ :: adapts -> acc
+        | a :: adapts when a - startJoltage <= 3L -> (candidates' ((a, adapts) ::acc) startJoltage adapts)
+        | _ :: _ -> acc
     candidates' [] startJoltage adapters |> List.rev
 
-open System.Collections.Generic
-
-let rec calculateArrangements (memo : Dictionary<int64,int64>) startJoltage adapters : int64 =
-    let addOrUpdate (memo : Dictionary<int64,int64>) key value =
-        match memo.TryGetValue key with
-        | (true,_) -> memo.[key] <- value
-        | _ -> memo.Add(key,value)
-    match memo.TryGetValue startJoltage with
-    | (true, value) -> value
+let rec calculateArrangements (memo : Map<int64,int64>) joltage adapters =       
+    match memo |> Map.tryFind joltage with
+    | Some _ -> memo
     | _ ->
         match adapters with
-        | [] -> 1L
-        | [_] -> 1L
+        | [] 
+        | [_] -> memo |> Map.add joltage 1L
         | adapters ->
-            let candidates = candidates startJoltage adapters |> List.sortByDescending fst
-            let sum =
-                candidates 
-                |> Seq.map (fun (a,aas) -> a, calculateArrangements memo a aas)
-                |> Seq.map (fun (a,r ) -> addOrUpdate memo a r; r)
-                |> Seq.sum
-            memo.Add(startJoltage, sum)
-            sum
+            let candidates = candidates joltage adapters
+            let newMemo = candidates |> Seq.fold (fun memo (a,aas) -> calculateArrangements memo a aas) memo
+            let sum = candidates |> Seq.map fst |> Seq.map (fun c -> newMemo |> Map.find c) |> Seq.sum
+            newMemo |> Map.add joltage sum
 
 let solve adapters =
-    let sorted = adapters |> List.sort |> List.rev
-    let deviceAdapter = 3L + (sorted |> Seq.head)
-    let includingDevice = sorted @ [0L]
-    let memo = Dictionary<int64,int64>();
+    let sorted = adapters |> List.sort
+    let deviceAdapter = 3L + (sorted |> Seq.last)
+    let includingDevice = sorted @ [deviceAdapter]
     
-    calculateArrangements memo deviceAdapter includingDevice
+    calculateArrangements Map.empty 0L includingDevice |> Map.find 0L
 
 let smallExample = [1L; 4L; 5L; 6L; 7L; 10L; 11L; 12L; 15L; 16L; 19L]
 let largerExample = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\larger-example.txt" |> Seq.map int64 |> Seq.toList
+let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt" |> Seq.map int64 |> Seq.toList
+
+#time
 printf "Test.."
 test <@ solve smallExample = 8L @> 
 test <@ solve largerExample = 19208L @> 
+test <@ solve input = 99214346656768L @>
 printfn "done!"
-
-let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt" |> Seq.map int64 |> Seq.toList
-#time
-solve input
