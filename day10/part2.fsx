@@ -1,9 +1,6 @@
 ﻿#r @"nuget: Unquote"
 open Swensen.Unquote
 
-let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt" |> Seq.map int
-let sorted = input |> Seq.sort |> Seq.toList
-
 let candidates startJoltage adapters = 
     let rec candidates' acc startJoltage adapters =
         match adapters with
@@ -32,17 +29,19 @@ let rec calculateArrangements startJoltage adapters : int =
         //|> (fun x-> printfn "recursive current joltage %A: %A" startJoltage (x |> Seq.toList);  x)
         |> Seq.sum
    
+
+let solve adapters =
+    let sorted = adapters |> List.sort
+    let deviceAdapter = 3 + (sorted |> Seq.last)
+    let includingDevice = sorted @ [deviceAdapter]
+
+    calculateArrangements 0 includingDevice
+
 let smallExample = [1; 4; 5; 6; 7; 10; 11; 12; 15; 16; 19]
-
-calculateArrangements 0 (smallExample @ [22])
-calculateArrangements 0 [1; 2; 4;]
-
-let deviceAdapter = 3 + (sorted |> Seq.last)
-let includingDevice = sorted @ [deviceAdapter]
-
-calculateArrangements 0 includingDevice
-
+let largerExample = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\larger-example.txt" |> Seq.map int |> Seq.toList
 printf "Test.."
-test <@ candidates 0 [1..4] = [(1, [2; 3; 4]); (2, [3; 4]); (3, [4])] @> 
-test <@ candidates 2 [3..4] = [(3, [4]); (4, [])] @> 
+test <@ solve smallExample = 8 @> 
+test <@ solve largerExample = 19208 @> 
 printfn "done!"
+
+let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt" |> Seq.map int
