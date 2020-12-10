@@ -1,42 +1,40 @@
 ﻿#r @"nuget: Unquote"
 open Swensen.Unquote
 
-let candidates startJoltage adapters = 
-    let rec candidates' acc startJoltage adapters =
+let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt" |> Seq.map int |> Seq.toList
+let example = [16;10;15;5;1;11;7;19;6;12;4]
+
+let candidates joltage adapters =
+    let rec candidates' acc joltage adapters =
         match adapters with
         | [] -> acc
-        | a :: adapts when a - startJoltage <= 3L -> (candidates' ((a, adapts) ::acc) startJoltage adapts)
-        | _ :: _ -> acc
-    candidates' [] startJoltage adapters |> List.rev
+        | a :: aas when a - joltage <= 3 ->  candidates' ((a, aas) ::acc) joltage aas
+        | _ -> acc
+    candidates' [] joltage adapters |> List.rev
 
-let rec calculateArrangements (memo : Map<int64,int64>) joltage adapters =       
+let rec calculateNbPaths (memo : Map<int,int64>) joltage adapters : Map<int,int64> = 
     match memo |> Map.tryFind joltage with
-    | Some _ -> memo
-    | _ ->
+    | Some v -> memo
+    | None ->
         match adapters with
-        | [] 
-        | [_] -> memo |> Map.add joltage 1L
+        | [_] -> 
+            memo |> Map.add joltage 1L
         | adapters ->
-            let candidates = candidates joltage adapters
-            let newMemo = candidates |> Seq.fold (fun memo (a,aas) -> calculateArrangements memo a aas) memo
-            let sum = candidates |> Seq.map fst |> Seq.map (fun c -> newMemo |> Map.find c) |> Seq.sum
-            newMemo |> Map.add joltage sum
-             
+            let cands = candidates joltage adapters 
+            let nextMemo = cands |> Seq.fold (fun memo (a, aas) -> calculateNbPaths memo a aas) memo
+            let sum = cands |> Seq.map fst |> Seq.map (fun c -> nextMemo |> Map.find c) |> Seq.sum
+            nextMemo |> Map.add joltage sum
+
 let solve adapters =
     let sorted = adapters |> List.sort
-    let deviceAdapter = 3L + (sorted |> Seq.last)
-    let includingDevice = sorted @ [deviceAdapter]
+    let deviceAdapter = (sorted |> Seq.last) + 3
+    let allAdapters = sorted @ [deviceAdapter]
+    let memo = Map.empty
     
-    calculateArrangements Map.empty 0L includingDevice 
-    |> Map.find 0L
+    calculateNbPaths memo 0 allAdapters |> Map.find 0
 
-let smallExample = [1L; 4L; 5L; 6L; 7L; 10L; 11L; 12L; 15L; 16L; 19L]
-let largerExample = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\larger-example.txt" |> Seq.map int64 |> Seq.toList
-let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt" |> Seq.map int64 |> Seq.toList
-
-#time
 printf "Test.."
-test <@ solve smallExample = 8L @> 
-test <@ solve largerExample = 19208L @> 
-test <@ solve input = 99214346656768L @>
+test <@ candidates 4 [5;6;7;10] = [(5, [6; 7; 10]); (6, [7; 10]); (7, [10])] @>
+test <@ solve example = 8L @> 
+test <@ solve input = 99214346656768L @> 
 printfn "done!"
