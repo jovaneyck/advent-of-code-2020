@@ -12,7 +12,7 @@ let candidates joltage adapters =
         | _ -> acc
     candidates' [] joltage adapters |> List.rev
 
-let rec calculateNbPaths (memo : Map<int,int64>) joltage adapters : Map<int,int64> = 
+let rec calculateNbPaths memo joltage adapters = 
     match memo |> Map.tryFind joltage with
     | Some v -> memo
     | None ->
