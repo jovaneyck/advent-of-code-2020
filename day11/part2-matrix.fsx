@@ -5,23 +5,27 @@ let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"
 let example = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\example.txt"
 
 type State = Floor | EmptySeat | Occupied
-
-let parse text =
+type Layout = ((int * int) * State) array array
+let parse text : Layout =
     let parseChar =
         function
         | '.' -> Floor
         | 'L' -> EmptySeat
         | '#' -> Occupied
-        | e -> failwith $"Unknown character: {e}"
+        |  e  -> failwith $"Unknown character: {e}"
 
-    [ for (y,row) in text |> Seq.indexed do
-        for (x,col) in row |> Seq.indexed ->
-            (x,y), parseChar col ]
-    |> Map.ofSeq
+    [| for (y,row) in text |> Seq.indexed ->
+        [|for (x,col) in row |> Seq.indexed ->
+            (x,y), parseChar col |]|]
 
-let rec findFirstSeatIn layout (x,y) (dx, dy) =
+let rec findFirstSeatIn (layout : Layout) (x,y) (dx, dy) =
     let next = (x+dx, y+dy)
-    match layout |> Map.tryFind next with
+    let elemAt =
+        layout 
+        |> Array.tryItem (snd next) 
+        |> Option.bind (fun row -> row |> Array.tryItem (fst next))
+        |> Option.map snd
+    match elemAt with
     | None -> None
     | Some Floor -> findFirstSeatIn layout next (dx,dy)
     | Some seat -> Some seat
@@ -44,10 +48,8 @@ let applyRules layout (coord, s) =
     (coord, next)
 
 let tick layout =
-    layout 
-    |> Map.toSeq
-    |> Seq.map (applyRules layout)
-    |> Map.ofSeq
+    [| for row in layout -> 
+        [| for cell in row -> applyRules layout cell|]|]
 
 let rec fixp f x =
     let next = f x
@@ -57,8 +59,8 @@ let rec fixp f x =
 
 let layout = parse input
 #time
-let final = fixp tick layout //Real: 00:00:31.948, CPU: 00:00:26.859, GC gen0: 5049, gen1: 10, gen2: 1
-final |> Map.toSeq |> Seq.map snd |> Seq.filter (function | Occupied -> true | _ -> false) |> Seq.length 
+let final = fixp tick layout //Real: 00:00:02.331, CPU: 00:00:02.078, GC gen0: 788, gen1: 12, gen2: 1
+final |> Seq.collect id |> Seq.map snd |> Seq.filter (function | Occupied -> true | _ -> false) |> Seq.length 
 
 let ex1 = [ "............."
             ".L.L.#.#.#.#."
