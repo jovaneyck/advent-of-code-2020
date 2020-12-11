@@ -36,5 +36,6 @@ let solve adapters =
 printf "Test.."
 test <@ candidates 4 [5;6;7;10] = [(5, [6; 7; 10]); (6, [7; 10]); (7, [10])] @>
 test <@ solve example = 8L @> 
-test <@ solve input = 99214346656768L @> 
+#time
+test <@ solve input = 99214346656768L @> //Real: 00:00:00.001, CPU: 00:00:00.000, GC gen0: 0, gen1: 0, gen2: 0
 printfn "done!"
