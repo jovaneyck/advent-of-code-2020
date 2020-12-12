@@ -109,6 +109,7 @@ qc
         |> rotateWaypoint rotation 90
         |> rotateWaypoint rotation 90
             = rotateWaypoint rotation 180 coord)
+
 qc 
     "rotating 90 four times in the same direction ends up in a 360 turn" 
     (fun rotation coord -> 
