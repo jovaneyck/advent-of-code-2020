@@ -6,9 +6,9 @@ let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"
 type Action = N | E | S | W | L | R | F
 type Instruction = { action : Action; value : int }
 type Orientation = North | East | South | West
-type State = { location : int*int; orientation : Orientation; waypoint : int*int }
+type State = { location : int*int; waypoint : int*int }
 
-let initial = { location = (0,0); orientation = East; waypoint = (10,1) }
+let initial = { location = (0,0); waypoint = (10,1) }
 
 let parse text =
     let parseLine (line : string) =
