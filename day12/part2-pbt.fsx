@@ -28,7 +28,7 @@ let parse text =
 
 type Rotation = Left | Right
 
-let rotateWaypoint rotation degrees waypoint =
+let  rotateWaypoint rotation degrees waypoint =
     let (x,y) = waypoint
     match rotation, degrees with
     | Right, 90 -> (y,-1*x)
