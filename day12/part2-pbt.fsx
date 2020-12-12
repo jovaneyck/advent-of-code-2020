@@ -28,14 +28,14 @@ let parse text =
 
 type Rotation = Left | Right
 
-let rec rotateWaypoint rotation degrees waypoint =
+let rotateWaypoint rotation degrees waypoint =
     let (x,y) = waypoint
     match rotation, degrees with
     | Right, 90 -> (y,-1*x)
     | Left, 90 -> (-1*y,x)
     | _, 180 -> (-1*x,-1*y)
-    | Right, 270 -> rotateWaypoint Left 90 waypoint
-    | Left, 270 -> rotateWaypoint Right 90 waypoint
+    | Right, 270 -> (-1*y,x)
+    | Left, 270 -> (y,-1*x)
 
 let rotate rotation state value =
     let newWaypoint = rotateWaypoint rotation value state.waypoint
@@ -75,6 +75,13 @@ let instructions = parse input
 let final = run instructions
 24352 + 36701
 
+//Great FsCheck introduction: https://fsharpforfunandprofit.com/posts/property-based-testing/
+#r "nuget: FsCheck"
+open FsCheck
+
+let qc name prop = 
+    Check.One (name, { FsCheck.Config.Default with QuietOnSuccess = true }, prop)
+
 printf "Test.."
 test <@ forward { initial with waypoint = (10,1); location = (0,0) } 10 
             = { initial with waypoint = (10,1); location = (100,10) } @>
@@ -85,4 +92,31 @@ test <@ rotateWaypoint Right 90 (-4, 10) = (10,4) @>
 test <@ rotateWaypoint Left 90 (4, -10) = (10,4) @> 
 test <@ rotateWaypoint Right 180 (10,4) = (-10, -4) @> 
 test <@ rotateWaypoint Right 270 (4, -10) = (10,4) @> 
+
+qc 
+    "rotating left or right 180 ends up the same" 
+    (fun coord -> rotateWaypoint Left 180 coord = rotateWaypoint Right 180 coord)
+qc 
+    "rotating left 270 ends up in the same place as right 90" 
+    (fun coord -> rotateWaypoint Left 270 coord = rotateWaypoint Right 90 coord)
+qc 
+    "rotating left 90 ends up in the same place as right 270" 
+    (fun coord -> rotateWaypoint Left 90 coord = rotateWaypoint Right 270 coord)
+qc 
+    "rotating 90 twice in the same direction ends up in a 180 turn" 
+    (fun rotation coord -> 
+        coord 
+        |> rotateWaypoint rotation 90
+        |> rotateWaypoint rotation 90
+            = rotateWaypoint rotation 180 coord)
+qc 
+    "rotating 90 four times in the same direction ends up in a 360 turn" 
+    (fun rotation coord -> 
+        coord 
+        |> rotateWaypoint rotation 90
+        |> rotateWaypoint rotation 90
+        |> rotateWaypoint rotation 90
+        |> rotateWaypoint rotation 90
+            = coord)
+
 printfn "done!"
