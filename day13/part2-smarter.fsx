@@ -37,12 +37,13 @@ let solveMutable (busids : int64 list list) (timestamp : int64) increment =
     ts
 
 let findSeed seed (maxIdx, maxID) =
+    printfn "finding seed for %A" (seed ,maxIdx, maxID)
     let multiples nb = Seq.initInfinite (fun idx -> int64 idx * nb)
     let start = maxID - int64 maxIdx
     let ms = multiples maxID |> Seq.map (fun m -> m + start)
     let smallestValidSeed = ms |> Seq.find (fun m -> m > seed)
+    printfn "Found seed, let's gooooo! %A" smallestValidSeed
     smallestValidSeed
-
 
 let solve seed input =
     let busIDs = parse input
@@ -55,14 +56,18 @@ printf "Test.."
 //#time "on"
 test <@ solve 0L "17,x,13,19" = 3_417L @>
 test <@ solve 0L "67,7,59,61" = 754_018L @>
+test <@ solve 0L "67,x,7,59,61" = 779210L @>
+test <@ solve 0L "67,7,x,59,61" = 1261476L @>
 test <@ solve 0L "1789,37,47,1889" = 1_202_161_486L @> 
 printfn "done!"
 
-//let rec alert () =
-//    System.Console.Beep(500,1000)
-//    System.Console.Beep(1000,1000)
-//    alert ()
+findSeed 100000000000000L, (19, 743L)
 
-//let FINALLY = solve (input |> Seq.item 1)
-//printfn $"{FINALLY}"
-//alert () |> ignore
+let rec alert () =
+    System.Console.Beep(500,1000)
+    System.Console.Beep(1000,1000)
+    alert ()
+
+let FINALLY = solve 100000000000000L (input |> Seq.item 1)
+printfn $"{FINALLY}"
+alert () |> ignore
