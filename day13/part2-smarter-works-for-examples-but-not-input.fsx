@@ -19,41 +19,42 @@ let solveMutable (busids : int64 list list) (timestamp : int64) increment =
         //if ts % 1_000_000L = 0L
         //then printfn $"{ts}"
 
-        let mutable intidx = 0
-        let mutable idx = 0L
+        let mutable idx = 0
         let mutable problem = false
-        while not problem && intidx < nbBuses do
-            let busid = busids.[intidx].[0]
-            let rem = busids.[intidx].[1]
+        while not problem && idx < nbBuses do
+            let busid = busids.[idx].[0]
+            let rem = busids.[idx].[1]
             if ts % busid <> rem then
                 problem <- true
             else
-                intidx <- intidx + 1
-                idx <- idx + 1L
+                idx <- idx + 1
 
         if not problem 
         then searching <- false 
         else ts <- ts + increment
     ts
 
-let findSeed seed (maxIdx, maxID) =
-    printfn "finding seed for %A" (seed ,maxIdx, maxID)
-    let multiples nb = Seq.initInfinite (fun idx -> int64 idx * nb)
-    let start = maxID - int64 maxIdx
-    let ms = multiples maxID |> Seq.map (fun m -> m + start)
-    let smallestValidSeed = ms |> Seq.find (fun m -> m > seed)
-    printfn "Found seed, let's gooooo! %A" smallestValidSeed
+let findSeed seed (maxIdx :int, maxID : int64) =
+    let smallestValidSeed =
+        Seq.initInfinite (fun idx -> seed + (int64 idx))
+        |> Seq.find (fun s -> (s - maxID + int64 maxIdx) % maxID = 0L)
     smallestValidSeed
 
 let solve seed input =
     let busIDs = parse input
-    let withRem = busIDs |> Seq.mapi (fun i busid -> [busid; if i = 0 then 0L else if busid = 1L then 0L else busid - int64 i]) |> Seq.toList
+    let withRem = busIDs |> Seq.mapi (fun i busid -> [busid; if i = 0 then 0L else if busid = 1L then 0L else busid - (int64 i % busid)]) |> Seq.toList
     let (maxIdx,maxID) = busIDs |> Seq.indexed |> Seq.maxBy snd
     let seed = findSeed seed (maxIdx, maxID)
-    solveMutable withRem seed maxID
+    let withoutXes = 
+        withRem 
+        |> List.filter (fun [busid;_] -> busid <> 1L)
+    //printfn "%A" withoutXes
+    solveMutable withoutXes seed maxID
 
 printf "Test.."
 //#time "on"
+test <@ findSeed 50L (3, 19L) = 54L @>
+test <@ findSeed 100000000000000L (19, 743L) = 100000000000098L @>
 test <@ solve 0L "17,x,13,19" = 3_417L @>
 test <@ solve 0L "67,7,59,61" = 754_018L @>
 test <@ solve 0L "67,x,7,59,61" = 779210L @>
@@ -61,13 +62,11 @@ test <@ solve 0L "67,7,x,59,61" = 1261476L @>
 test <@ solve 0L "1789,37,47,1889" = 1_202_161_486L @> 
 printfn "done!"
 
-findSeed 100000000000000L, (19, 743L)
+//let rec alert () =
+//    System.Console.Beep(500,1000)
+//    System.Console.Beep(1000,1000)
+//    alert ()
 
-let rec alert () =
-    System.Console.Beep(500,1000)
-    System.Console.Beep(1000,1000)
-    alert ()
-
-let FINALLY = solve 100000000000000L (input |> Seq.item 1)
-printfn $"{FINALLY}"
-alert () |> ignore
+//let FINALLY = solve 100000000000000L (input |> Seq.item 1)
+//printfn $"{FINALLY}"
+//alert () |> ignore
