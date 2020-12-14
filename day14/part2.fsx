@@ -7,16 +7,26 @@ let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"
 
 type Instruction = Mem of int64 * int64 | Mask of string
 
+let maskRegex = Regex("mask = (.*)")
+let memRegex = Regex("mem\[(\d*)\] = (\d*)")
+let (|AMask|_|) line =
+    let m = maskRegex.Match(line)
+    if m.Success 
+    then m.Groups.[1].Value |> Mask |> Some
+    else None
+let (|AMem|_|) line =
+    let m = memRegex.Match(line)
+    if m.Success 
+    then (int64 m.Groups.[1].Value, int64 m.Groups.[2].Value) |> Mem |> Some
+    else None
+
+
 let parse text =
     let parseLine (line : string) =
-        let maskLine = line.Split([|"mask = "|], System.StringSplitOptions.None)
-        if maskLine.Length = 2
-        then Mask maskLine.[1]
-        else 
-            let memRegex = Regex("mem\[(\d*)\] = (\d*)").Match(line)
-            let address = memRegex.Groups.[1].Value |> int64
-            let value = memRegex.Groups.[2].Value |> int64
-            Mem (address, value)
+        match line with
+        | AMask m -> m
+        | AMem m -> m
+        | u -> failwith $"Don't know how to parse line: {u}"
     text
     |> Seq.map parseLine
     |> Seq.toList
