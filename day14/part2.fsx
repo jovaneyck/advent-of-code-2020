@@ -12,20 +12,20 @@ let memRegex = Regex("mem\[(\d*)\] = (\d*)")
 let (|AMask|_|) line =
     let m = maskRegex.Match(line)
     if m.Success 
-    then m.Groups.[1].Value |> Mask |> Some
+    then m.Groups.[1].Value |> Some
     else None
 let (|AMem|_|) line =
     let m = memRegex.Match(line)
     if m.Success 
-    then (int64 m.Groups.[1].Value, int64 m.Groups.[2].Value) |> Mem |> Some
+    then (int64 m.Groups.[1].Value, int64 m.Groups.[2].Value) |> Some
     else None
 
 
 let parse text =
     let parseLine (line : string) =
         match line with
-        | AMask m -> m
-        | AMem m -> m
+        | AMask m -> Mask m
+        | AMem (a,v) -> Mem (a,v)
         | u -> failwith $"Don't know how to parse line: {u}"
     text
     |> Seq.map parseLine
