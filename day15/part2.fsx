@@ -6,8 +6,7 @@ let input =
     |> (fun s -> s.Split([|","|], System.StringSplitOptions.None))
     |> Seq.map int64
     |> Seq.toList
-let example = [0L;3L;6L]
-
+ 
 type Turn = { timestamp : int64; number : int64; lookup : Map<int64, int64> (*nb->last time we heard nb*) }
 
 let initialTurn seed =
@@ -51,4 +50,5 @@ let solve input n =
 printf "Test"
 test <@ solve [0L;3L;6L] 2020 = 436L @>
 test <@ solve input 2020 = 1238L  @>
+test <@ solve input 30_000_000 = 1238L  @>
 printfn "done!"
