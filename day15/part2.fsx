@@ -34,14 +34,6 @@ let next turn =
             number = nextNumber
             lookup = turn.lookup |> Map.add turn.number turn.timestamp }
 
-let rec generateSeq turn : Turn seq =
-    seq {
-        yield turn
-        //if turn.timestamp % 300_000L = 0L then printfn $"{turn.timestamp}"
-        yield! generateSeq (next turn)
-    }
-
-
 let solve input n =
     let init = initialTurn input
     let sequence = init |> Seq.unfold (fun s -> Some (s.number, next s))
