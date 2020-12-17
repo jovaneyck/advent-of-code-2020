@@ -40,13 +40,15 @@ let stateAt dimension coord =
     |> Map.tryFind coord
     |> Option.defaultValue Inactive
 
+let numberActiveNeighbours dimension coord =
+    neighbours dimension coord 
+    |> Seq.map (stateAt dimension) 
+    |> Seq.filter (fun s -> s = Active)
+    |> Seq.length
+
 let applyRules dimension coord =
     let cubeState = stateAt dimension coord
-    let nbActiveNeighbours = 
-        neighbours dimension coord 
-        |> Seq.map (stateAt dimension) 
-        |> Seq.filter (fun s -> s = Active)
-        |> Seq.length
+    let nbActiveNeighbours = numberActiveNeighbours dimension coord
     let nextCubeState =
         match cubeState, nbActiveNeighbours with
         | Active, a when a = 2 || a = 3 -> Active
