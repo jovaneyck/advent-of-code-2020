@@ -17,13 +17,12 @@ let parse input : PocketDimension =
     |> Map.ofList
 
 let neighbours dimension (x,y,z,w) =
-    [
-        (-1,-1);(0,-1);(1,-1)
-        (-1,0); (0,0); (1,0)
-        (-1,1); (0,1); (1,1)
-    ]
-    |> Seq.collect (fun (xo,yo) -> [ (xo,yo,0); (xo,yo,1);(xo,yo,-1) ])
-    |> Seq.collect (fun (xo,yo,zo) -> [ (xo,yo,zo,0); (xo,yo,zo,1);(xo,yo,zo,-1) ])
+    let offsets = [-1;0;1]
+    [ for x in offsets do
+      for y in offsets do
+      for z in offsets do
+      for w in offsets ->
+        (x,y,z,w)]
     |> Seq.except [(0,0,0,0)]
     |> Seq.map (fun (xo,yo,zo,wo) -> (x+xo,y+yo,z+zo,w+wo))
 
