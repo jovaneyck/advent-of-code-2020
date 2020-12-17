@@ -68,9 +68,8 @@ let pd = parse input
 
 #time "on"
 let final = pd |> nextCycle|> nextCycle|> nextCycle|> nextCycle|> nextCycle|> nextCycle
-//Real: 00:00:46.209, CPU: 00:00:45.234, GC gen0: 14524, gen1: 75, gen2: 1
-//Real: 00:00:07.055, CPU: 00:00:06.984, GC gen0: 2309, gen1: 35, gen2: 0
-let part2 = final |> Map.toSeq |> Seq.map snd |> Seq.filter (fun s -> s = Active) |> Seq.length
+//Real: 00:00:05.422, CPU: 00:00:05.406, GC gen0: 2308, gen1: 29, gen2: 0
+let part2 = final |> Map.filter(fun k s -> s = Active) |> Seq.length
 
 printf "Test.."
 printfn "..done!"
