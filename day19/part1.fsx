@@ -10,7 +10,7 @@ type Rule =
     | Sequence of int list
     | Alternative of int list list
 type Rulebook = Map<int,Rule>
-let charRegex = Regex("(\d*): \"(.)\"")
+let charRegex = Regex("^(\d*): \"(.)\"$")
 let (|CharRule|_|) line =
     let m = charRegex.Match(line)
     if m.Success 
@@ -21,7 +21,7 @@ let (|CharRule|_|) line =
     else
         None
    
-let sequenceRegex = Regex("(\d*): ((\d+)\s?)+")
+let sequenceRegex = Regex("^(\d*): ((\d+)\s?)+$")
 let (|SeqRule|_|) line =
     let m = sequenceRegex.Match(line)
     if m.Success 
@@ -32,14 +32,16 @@ let (|SeqRule|_|) line =
     else
         None 
 
-let choiceRegex = Regex("(\d*): (\d*) (\d*) \| (\d*) (\d*)")
-let (|ChoiceRule|_|) line =
+let choiceRegex = Regex("^(\d*): (.*) \| (.*)$")
+let line = "13: 116 113 | 112 110"
+let (|AlternativeRule|_|) line =
     let m = choiceRegex.Match(line)
     if m.Success 
     then 
+        let left = m.Groups.[2].Value.Split([|' '|]) |> Seq.map int |> Seq.toList
+        let right = m.Groups.[3].Value.Split([|' '|]) |> Seq.map int |> Seq.toList
         let ruleNumber = m.Groups.[1].Value |> int
-        let rules = [ [ m.Groups.[2].Value |> int; m.Groups.[3].Value |> int ]
-                      [ m.Groups.[4].Value |> int; m.Groups.[5].Value |> int ] ]
+        let rules = [ left; right ]
         Some (ruleNumber, rules)
      else
          None 
@@ -47,8 +49,9 @@ let (|ChoiceRule|_|) line =
 let parseRule line =
     match line with
     | CharRule (nb, c) -> (nb, Char c)
-    | ChoiceRule (nb, r) -> (nb, Alternative r)
+    | AlternativeRule (nb, r) -> (nb, Alternative r)
     | SeqRule (nb, r) -> (nb, Sequence r)
+    | unknown -> failwith $"Failed to parse rule: {unknown}"
     
 let parse text : Rulebook * string list =
     let rulebook =
@@ -100,6 +103,7 @@ printf "Test.."
 test <@ parseRule @"4: ""a""" = (4, Char 'a') @>
 test <@ parseRule "125: 100 116" = (125, Sequence [100; 116]) @>
 test <@ parseRule "126: 127 41 | 116 112" = (126, Alternative [[127; 41]; [116; 112]]) @>
+test <@ parseRule "13: 116 | 127" = (13, Alternative [[116]; [127]]) @>
 
 test <@ parses Map.empty (Char 'z') "z" = Ok "" @>
 test <@ parses Map.empty (Char 'a') "z" = Error "z"@>
