@@ -73,56 +73,57 @@ let combine (one : ParseResult) (other : ParseResult) : ParseResult =
     | _, Ok r -> Ok r
     | Error l, Error r -> l@r |> Error
     
-let rec applyRulesInSequence rulebook message rules = 
-    match rules with
+let applyCharRule (message : string) c =
+    if message.StartsWith(string c)
+    then [message.Substring(1)] |> Ok
+    else [(sprintf "<%s> does not start with <%c>" message c) |> ParsingProblem] |> Error
+
+let rec applyRulesInSequence rulebook message ruleIds = 
+    match ruleIds with
     | [] -> Ok [message]
     | r :: rs ->
-        let firstResult = parses rulebook r message
+        let rule = rulebook |> Map.find r
+        let firstResult = parses rulebook rule message
         match firstResult with
         | Error e -> Error e
         | Ok remainders ->
             remainders
             |> List.map (fun remainder -> applyRulesInSequence rulebook remainder rs)
             |> List.reduce combine
-and parses (rulebook : Rulebook) rule (message : string) : Result<string list,ParsingProblem list> =
+and applyAlternatives rulebook message alternatives =
+    alternatives 
+    |> List.map Sequence
+    |> List.map (fun alt -> parses rulebook alt message)
+    |> List.reduce combine
+and parses (rulebook : Rulebook) (rule : Rule) (message : string) : ParseResult =
     //printfn $"running rule <{rule}> on <{message}>"
     let result = 
         match rule with
-        | Char c -> 
-            if message.StartsWith(string c)
-            then [message.Substring(1)] |> Ok
-            else [(sprintf "<%s> does not start with <%c>" message c) |> ParsingProblem] |> Error
-        | Sequence rules ->
-            rules 
-            |> List.map (fun r -> rulebook |> Map.find r) 
-            |> applyRulesInSequence rulebook message
-        | Alternative alternatives ->
-            let [first;second] = alternatives |> List.map Sequence
-            let firstResult = parses rulebook first message
-            let secondResult = parses rulebook second message
-            combine firstResult secondResult
-            
+        | Char c -> applyCharRule message c
+        | Alternative alternatives -> applyAlternatives rulebook message alternatives
+        | Sequence rules -> applyRulesInSequence rulebook message rules 
     //printfn "%A when applying rule %A on <%s>" result rule message
     result
 
 let applies rulebook rule message = 
     match parses rulebook rule message with
-    | Ok rems when rems |> Seq.exists (fun r->r="") -> true
+    | Ok rems when rems |> Seq.exists ((=) "") -> true
     | _ -> false
 
-let (rulebook, messages) = parse examplepart2
-let updatedRulebook =
-    rulebook
-    |> Map.add 8 (Alternative [[42]; [42;8]])
-    |> Map.add 11 (Alternative [[42;31]; [42;11;31]])
+let solve input =
+    let (rulebook, messages) = parse input
+    let updatedRulebook =
+        rulebook
+        |> Map.add 8 (Alternative [[42]; [42;8]])
+        |> Map.add 11 (Alternative [[42;31]; [42;11;31]])
 
-let rule0 = updatedRulebook |> Map.find 0
-updatedRulebook |> Seq.iter (printfn "%A")
-//let valid =
-//    messages
-//    |> Seq.filter (applies updatedRulebook rule0)
-//    |> Seq.toList
-//let answer = valid |> Seq.length
+    let rule0 = updatedRulebook |> Map.find 0
+
+    let valid =
+        messages
+        |> Seq.filter (applies updatedRulebook rule0)
+        |> Seq.toList
+    valid |> Seq.length
 
 printf "Test.."
 test <@ parseRule @"4: ""a""" = (4, Char 'a') @>
@@ -157,5 +158,9 @@ test <@ applies ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1;2]
 test <@ applies ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Sequence [1;2]) "ab"  @>
 test <@ applies ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Sequence [1;2]) "abc" |> not @>
 test <@ applies ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Sequence [1;2]) "ba" |> not @>
+
+test <@ solve examplepart1 = 2 @>
+test <@ solve examplepart2 = 12 @>
+test <@ solve input = 386 @>
 
 printfn "..done!"
