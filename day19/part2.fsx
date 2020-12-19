@@ -10,9 +10,9 @@ type Rule =
     | Sequence of int list
     | Alternative of int list list
 type Rulebook = Map<int,Rule>
-let charRegex = Regex("^(\d*): \"(.)\"$")
+
 let (|CharRule|_|) line =
-    let m = charRegex.Match(line)
+    let m = Regex("^(\d*): \"(.)\"$").Match(line)
     if m.Success 
     then 
         let ruleNumber = m.Groups.[1].Value |> int
@@ -21,9 +21,8 @@ let (|CharRule|_|) line =
     else
         None
    
-let sequenceRegex = Regex("^(\d*): ((\d+)\s?)+$")
 let (|SeqRule|_|) line =
-    let m = sequenceRegex.Match(line)
+    let m = Regex("^(\d*): ((\d+)\s?)+$").Match(line)
     if m.Success 
     then 
         let ruleNumber = m.Groups.[1].Value |> int
@@ -32,19 +31,16 @@ let (|SeqRule|_|) line =
     else
         None 
 
-let choiceRegex = Regex("^(\d*): (.*) \| (.*)$")
-let line = "13: 116 113 | 112 110"
 let (|AlternativeRule|_|) line =
-    let m = choiceRegex.Match(line)
+    let m = Regex("^(\d*): (.*) \| (.*)$").Match(line)
     if m.Success 
     then 
+        let ruleNumber = m.Groups.[1].Value |> int
         let left = m.Groups.[2].Value.Split([|' '|]) |> Seq.map int |> Seq.toList
         let right = m.Groups.[3].Value.Split([|' '|]) |> Seq.map int |> Seq.toList
-        let ruleNumber = m.Groups.[1].Value |> int
-        let rules = [ left; right ]
-        Some (ruleNumber, rules)
+        Some (ruleNumber, [ left; right ])
      else
-         None 
+         None
 
 let parseRule line =
     match line with
@@ -65,31 +61,33 @@ let parse text : Rulebook * string list =
         |> Seq.skip 1
         |> Seq.toList
     (rulebook, messages)
-
-let rec parses (rulebook : Rulebook) rule (message : string) : Result<string,string> =
-    printfn $"rule {rule} on {message}"
+type ParsingProblem = ParsingProblem of string
+let rec parses (rulebook : Rulebook) rule (message : string) : Result<string,ParsingProblem> =
+    printfn $"running rule <{rule}> on <{message}>"
     let result = 
         match rule with
         | Char c -> 
             if message.StartsWith(string c)
             then message.Substring(1) |> Ok
-            else message |> Error
+            else (sprintf "<%s> does not start with <%c>" message c) |> ParsingProblem |> Error
         | Sequence rules ->
             rules 
             |> Seq.map (fun r -> rulebook |> Map.find r) 
             |> Seq.fold 
-                (fun result rule -> 
-                    match result with
-                    | Ok remainder -> parses rulebook rule remainder
-                    | err -> err)
+                (fun result rule -> result |> Result.bind (fun remainder -> parses rulebook rule remainder))
                 (Ok message)
         | Alternative alternatives ->
             let [first;second] = alternatives |> List.map (fun s -> Sequence s)
             let firstResult = parses rulebook first message
+            //let secondResult = parses rulebook first message
+            //BUG: if first parses, we never check whether option 2 parses as well, which might be the problem!!!
             match firstResult with
             | Ok remainder -> Ok remainder
-            | Error _ -> parses rulebook second message
-    printfn "which resulted in: %A" result
+            | Error (ParsingProblem errf) -> 
+                match parses rulebook second message with
+                | Ok remainder -> Ok remainder
+                | Error (ParsingProblem errs) -> Error <| ParsingProblem (sprintf "both alternatives had problems: %A; %A" errf errs)
+    printfn "%A when applying rule %A on <%s>" result rule message
     result
 
 let applies rulebook rule message = 
@@ -104,11 +102,12 @@ let updatedRulebook =
     |> Map.add 11 (Alternative [[42;31]; [42;11;31]])
 
 let rule0 = updatedRulebook |> Map.find 0
-let valid =
-    messages
-    |> Seq.filter (applies updatedRulebook rule0)
-    |> Seq.toList
-valid |> Seq.contains "aaaaabbaabaaaaababaa"
+updatedRulebook |> Seq.iter (printfn "%A")
+//let valid =
+//    messages
+//    |> Seq.filter (applies updatedRulebook rule0)
+//    |> Seq.toList
+//valid |> Seq.contains "aaaaabbaabaaaaababaa"
 //|> Seq.length
 
 parses updatedRulebook rule0 "aaaaabbaabaaaaababaa"
@@ -120,20 +119,20 @@ test <@ parseRule "126: 127 41 | 116 112" = (126, Alternative [[127; 41]; [116; 
 test <@ parseRule "13: 116 | 127" = (13, Alternative [[116]; [127]]) @>
 
 test <@ parses Map.empty (Char 'z') "z" = Ok "" @>
-test <@ parses Map.empty (Char 'a') "z" = Error "z"@>
+test <@ parses Map.empty (Char 'a') "z" = (Error <| ParsingProblem "z does not start with a") @>
 test <@ parses Map.empty (Char 'a') "az" = Ok "z" @>
 
 test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Sequence [1;2]) "ab" = (Ok "") @>
 test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Sequence [1;2]) "abc" = (Ok "c") @>
-test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Sequence [1;2]) "cab" = (Error "cab") @>
+test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Sequence [1;2]) "cab" = (Error <| ParsingProblem "cab does not start with a") @>
 
 test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1];[2]]) "a" = (Ok "") @>
 test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1];[2]]) "b" = (Ok "") @>
-test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1];[2]]) "c" = (Error "c") @>
+test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1];[2]]) "c" = (Error <| ParsingProblem @"both alternatives had problems: ""c does not start with a""; ""c does not start with b""") @>
 test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1];[2]]) "ab" = (Ok "b") @>
 test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1;2];[2;1]]) "abc" = (Ok "c") @>
 test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1;2];[2;1]]) "bac" = (Ok "c") @>
-test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1;2];[2;1]]) "cab" = (Error "cab") @>
+test <@ parses ([(1, Char 'a');(2, Char 'b')] |> Map.ofSeq) (Alternative [[1;2];[2;1]]) "cab" = (Error <| ParsingProblem @"both alternatives had problems: ""cab does not start with a""; ""cab does not start with b""") @>
 
 test <@ applies Map.empty (Char 'z') "z" @>
 test <@ applies Map.empty (Char 'z') "zab" |> not @>
