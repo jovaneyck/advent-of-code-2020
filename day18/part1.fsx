@@ -3,61 +3,99 @@
 open Swensen.Unquote
 open FParsec
 
-//How to explain:
-//https://www.quanttec.com/fparsec/tutorial.html#
-//https://tyrrrz.me/blog/parsing-with-fparsec
-//1. model your types: operators, values, nested expressions
-//2. write parsers for your "building blocks"
-//3. combine them into parser
-// Notice the symmetry between your types and your parsers!
-
 type Operator = Add | Mul
-type OperationData = { operator : Operator; lOperand : Expression; rOperand : Expression }
+type OperationData = { operator : Operator; left : Expression; right : Expression }
 and Expression = 
     | Value of int64
     | Operation of OperationData
+    | Parentheses of Expression
 
-let (<!>) (p: Parser<_,_>) label : Parser<_,_> =
-    //fun s  -> p s
-    fun stream ->
-        printfn "%A: Entering %s" stream.Position label
-        let reply = p stream
-        printfn "%A: Leaving %s (%A)" stream.Position label reply.Status
-        reply
-
-let pexpression, pExpressionRef = createParserForwardedToRef<Expression, unit>()
-let pvalue = pint64 .>> spaces |>> Value <!> "pvalue"
 let poperator = 
     ((charReturn '*' Mul) <|> (charReturn '+' Add)) .>> spaces
-    <!> "poperator"
-let poperation = 
-    pipe3 pexpression poperator pexpression (fun l o r -> Operation { lOperand = l; operator = o; rOperand = r})
-    <!> "poperation"
-do pExpressionRef := pvalue <|> poperation <!> "pexpression"
+let pvalue = pint64 .>> spaces |>> Value
+//Right-recursive variant:
+let pexpression, pexpressionRef = createParserForwardedToRef<Expression, unit>()
+let pexpression' = 
+    (pipe2 poperator pexpression (fun op exp -> (op,exp))) |>> Some
+    <|> preturn None
+let constructExpression exp exp' = 
+    match exp' with 
+    | None -> exp
+    | Some (op, right) -> Operation { left = exp; operator = op; right = right}
+let pbetweenparens = ((between (pchar '(') (pchar ')'.>> spaces) pexpression) |>> Parentheses)
+pexpressionRef :=
+    pipe2 pvalue pexpression' constructExpression
+    <|> pipe2 pbetweenparens pexpression' constructExpression
+    <|> pbetweenparens
 
-//Het gaat em hierboven zitten: http://www.quanttec.com/fparsec/users-guide/looking-ahead-and-backtracking.html
-//welke parser eerst proberen? Moeten we backtracken met attempt? Ofwa? :P
-//OF zit het probleem in de types? Die zijn ook mutually recursive?
-//Of we weten root node 100% zeker dat we een operation moeten parsen!
 let parse (text : string) =
-    match run (poperation .>> eof) text with
+    match run (pexpression .>> eof) text with
     | Success (r,_,_) -> r
     | Failure (f,s,e) -> failwithf $"Failure: {(f,s,e)}"
 
+let operate l op r =
+    match op with
+    | Add -> l + r
+    | Mul -> l * r
+
+let rec eval (exp : Expression) : int64 = 
+    match exp with
+    | Value v -> v
+    | Parentheses e -> eval e
+    | Operation { left = l; operator = op; right = r } ->
+        //Left-to-right operator precedence, if we don't encounter parentheses
+        match r with
+        | Value rv -> operate (eval l) op rv
+        | Parentheses r ->
+            let rv = eval r
+            operate (eval l) op rv
+        | Operation { left = rl; operator = rop; right = rr } ->
+            let lv = eval l
+            let operated = operate lv op (eval rl)
+            eval <| Operation { left = Value operated; operator = rop; right = rr }
+
+let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"  
+let parsed = input |> Seq.map parse
+parsed |> Seq.sumBy eval
+
+printf "Test.."
 test <@ parse "1 + 2" 
-    = Operation { operator = Add; lOperand = Value 1L; rOperand = Value 2L } @>
+    = Operation { operator = Add; left = Value 1L; right = Value 2L } @>
 test <@ parse "8 * 3" 
-    = Operation { operator = Mul; lOperand = Value 8L; rOperand = Value 3L } @>
+    = Operation { operator = Mul; left = Value 8L; right = Value 3L } @>
 test <@ parse "1 + 2 + 3" 
     = Operation 
         {   operator = Add; 
-            lOperand = Value 1L; 
-            rOperand = Operation { 
+            left = Value 1L; 
+            right = Operation { 
                 operator = Add; 
-                lOperand = Value 2L; 
-                rOperand = Value 3L }} @>
+                left = Value 2L; 
+                right = Value 3L }} @>
+test <@ parse "(1 + 2)" = (Parentheses <| Operation { operator = Add; left = Value 1L; right = Value 2L }) @>
+test <@ parse "(1 + 2) + 3" = Operation { operator = Add; left = Parentheses (Operation { operator = Add; left = Value 1L; right = Value 2L }) ; right = Value 3L } @>
 
-let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"  
+test <@ eval <| parse "123" = 123L @>
+test <@ eval <| parse "1 + 2" = 3L @>
+test <@ eval <| parse "1 + 2 + 3" = 6L @>
+test <@ eval <| parse "1 + 2 * 3" = 9L @>
+test <@ eval <| parse "1 + (2 * 3)" = 7L @>
 
-printf "Test.."
 printfn "..done!"
+
+(*
+Grammar:
+
+Operator -> +
+Operator -> *
+
+//problem: FParsec does not like left recursive grammars and will descend in an infinite loop
+//Expression -> Value
+//Expression -> Expression Operator Expression <-- INFINITE LOOP!
+//Solution: rewrite grammar to be right-recursive:
+Expression -> Value Expression'
+Expression' -> Operator Expression
+Expression' -> ()
+
+Parentheses -> ( Expression ) Expression'
+Parentheses -> ( Expression )
+*)

@@ -1,7 +1,7 @@
 ﻿#r "nuget: Unquote"
 open Swensen.Unquote
 open System.Text.RegularExpressions
-
+//When explaining this parser madness, reference F#forfunandprofits EXCELLENT tutorial!
 let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"  
 let examplepart1 = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\example.txt"  
 let examplepart2 = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\second-example.txt"  
