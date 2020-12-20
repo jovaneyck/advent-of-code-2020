@@ -3,12 +3,12 @@ open Swensen.Unquote
 open System.Text.RegularExpressions
 
 let example = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\example.txt"  
-let input = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\input.txt"  
+//let input = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\input.txt"  
 
 type Tile = { ID : int; contents : char[,] }
 type TileConfigurations = { ID : int; configurations : char[,] list }
 
-let m = array2D [[1;2];[3;4]]
+let m = array2D [[1;2;3];[4;5;6];[7;8;9]]
 
 let rot90 m =
     [for col in (Array2D.length1 m) - 1 .. -1 .. 0 -> 
@@ -21,6 +21,17 @@ let flipHorizontal m =
         m.[row,0..]
     ]
     |> array2D  
+
+let trimBorders (m : 'a [,]) =
+    m.[1..(Array2D.length1 m - 2),1..(Array2D.length1 m - 2)]
+
+let merge (nested : char [,][,]) : char[,] =
+    let outerDim = Array2D.length1 nested
+    let innerDim = Array2D.length1 nested.[0,0]
+    [for outer in 0..outerDim - 1 do
+        for inner in 0..innerDim - 1 ->
+            nested.[outer,0..] |> Seq.collect (fun m -> m.[inner,0..]) |> Seq.toList]
+    |> array2D
 
 let parse (input : string) = 
     let tileIDRegex = Regex("Tile (\d*):")
@@ -142,14 +153,29 @@ let placeNextPiece (puzzle,configurations) (x,y) =
     (puzzle |> Map.add (x,y) piece, configurations |> Map.remove piece.ID)
 
 let (completedPuzzle, _) = tasks |> List.fold placeNextPiece (puzzle, otherConfigs)
+//Let's trim everything and dump in a single bitmap
+let trimmed = 
+    [for col in 0..size-1 do
+        [for row in 0..size-1 ->
+            let trimmedPiece = completedPuzzle |> Map.find (row, col) |> (fun tile -> trimBorders tile.contents)
+            trimmedPiece]]
+    |> array2D
 
-#time "on"
+let merged = merge trimmed
+
 printf "Test.."
 test <@ array2D [[1;2];[3;4]] |> rot90 = array2D [[|2; 4|]; [|1; 3|]]  @>
 test <@ array2D [[1;2];[3;4]] |> rot90 |> rot90 = array2D [[|4; 3|]; [|2; 1|]]  @>
 test <@ array2D [[1;2];[3;4]] |> rot90 |> rot90 |> rot90 |> rot90 = array2D [[1;2];[3;4]]  @>
 test <@ array2D [[1;2];[3;4]] |> flipHorizontal = array2D [[|3; 4|]; [|1; 2|]]  @>
 test <@ array2D [[1;2];[3;4]] |> borders =[[|1; 2|]; [|3; 4|]; [|1; 3|]; [|2; 4|]]  @>
+test <@ [[1;2;3];[4;5;6];[7;8;9]] |> array2D |> trimBorders = array2D [[5]] @>
+test <@ [   [[['1';'2'];['3';'4']]|>array2D;[['5';'6'];['7';'8']]|>array2D]; 
+            [[['a';'b'];['c';'d']]|>array2D;[['e';'f'];['g';'h']]|>array2D]] 
+            |> array2D 
+            |> merge 
+                = ([['1';'2';'5';'6'];['3';'4';'7';'8'];['a';'b';'e';'f'];['c'; 'd'; 'g'; 'h']] |> array2D) @>
+
 test <@ part1 example = 20899048083289L @>
-test <@ part1 input = 14129524957217L @>
+//test <@ part1 input = 14129524957217L @>
 printfn "..done!"
