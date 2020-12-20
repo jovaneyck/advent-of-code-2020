@@ -2,8 +2,10 @@
 open Swensen.Unquote
 open System.Text.RegularExpressions
 
-let example = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\example.txt"  
-//let input = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\input.txt"  
+
+let monsterpattern = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\monster-pattern.txt"
+//let example = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\example.txt"  
+let input = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\input.txt"  
 
 type Tile = { ID : int; contents : char[,] }
 type TileConfigurations = { ID : int; configurations : char[,] list }
@@ -97,7 +99,7 @@ let findPiecesThatMatch border (tiles : TileConfigurations seq) : Tile seq =
             |> Option.map (fun cfg -> { ID = t.ID; contents = cfg}))
 
 //let's start with a random corner:
-let tiles = parse example
+let tiles = parse input
 let configs = tiles |> List.map (fun t -> t.ID, configurationsTile t) |> Map.ofSeq
 let corners = findCorners (configs |> Map.toList |> List.map snd) tiles
 let topLeft = corners.[0]
@@ -163,6 +165,44 @@ let trimmed =
 
 let merged = merge trimmed
 
+//Now let's hunt for sea monsters!
+let AAH_MONSTER =
+    [for (y,row) in monsterpattern |> Seq.indexed do
+        for (x,char) in row |> Seq.indexed do
+            if char = '#' then yield (x,y)]
+
+//Try to find a single monster by looping over all cells and applying the pattern
+let dim = merged |> Array2D.length1 //still a square
+let locations = [for y in 0..dim-1 do for x in 0..dim-1 -> (x,y)]
+
+let monsterfound (grid : char[,]) (x,y) = 
+    let dim = grid |> Array2D.length1
+    AAH_MONSTER
+    |> Seq.forall (fun (mx, my) -> 
+            x + mx < dim && y + my < dim && grid.[x+mx,y+my] = '#')
+
+//TODO: we have 2 monsters for the example, but they are in the wrong spot?
+
+//We need to flip/rotate our end puzzle, only one contains le sea monsters!
+let hitsPerConfigurations = 
+    configurations merged
+    |> List.map (fun merged ->
+        locations
+        |> List.filter (fun loc -> monsterfound merged loc))
+
+let monsterLocations = hitsPerConfigurations |> List.sortByDescending Seq.length |> Seq.head
+let nbMonsters = monsterLocations |> Seq.length //18
+let monsterSize = AAH_MONSTER |> Seq.length //15
+
+let totalRoughSpots = 
+    [for row in 0 .. dim - 1 do
+        for col in 0 .. dim - 1 do
+            if merged.[row,col] = '#' then yield 1
+    ] |> List.sum
+
+let part2 = totalRoughSpots - (monsterSize * nbMonsters)
+
+
 printf "Test.."
 test <@ array2D [[1;2];[3;4]] |> rot90 = array2D [[|2; 4|]; [|1; 3|]]  @>
 test <@ array2D [[1;2];[3;4]] |> rot90 |> rot90 = array2D [[|4; 3|]; [|2; 1|]]  @>
@@ -176,6 +216,6 @@ test <@ [   [[['1';'2'];['3';'4']]|>array2D;[['5';'6'];['7';'8']]|>array2D];
             |> merge 
                 = ([['1';'2';'5';'6'];['3';'4';'7';'8'];['a';'b';'e';'f'];['c'; 'd'; 'g'; 'h']] |> array2D) @>
 
-test <@ part1 example = 20899048083289L @>
+//test <@ part1 example = 20899048083289L @>
 //test <@ part1 input = 14129524957217L @>
 printfn "..done!"
