@@ -64,14 +64,13 @@ let nbUnmatchedBorders tile tiles =
         |> Seq.map (fun border -> bordsPerConf |> Seq.filter (fun cb -> cb |> List.contains border) |> Seq.length)
     nbMatchesPerBorder |> Seq.filter ((=) 0) |> Seq.length
 
-let tiles = parse input
-tiles |> Seq.length
+let solve input =
+    let tiles = parse input
+    let corners = 
+        tiles
+        |> List.filter (fun t -> nbUnmatchedBorders t (tiles |> List.except [t]) = 2)
 
-let corners = 
-    tiles
-    |> List.filter (fun t -> nbUnmatchedBorders t (tiles |> List.except [t]) = 2)
-
-corners |> Seq.map (fun t -> int64 t.ID) |> Seq.reduce (*)
+    corners |> Seq.map (fun t -> int64 t.ID) |> Seq.reduce (*)
 
 printf "Test.."
 test <@ array2D [[1;2];[3;4]] |> rot90 = array2D [[|2; 4|]; [|1; 3|]]  @>
@@ -80,4 +79,6 @@ test <@ array2D [[1;2];[3;4]] |> rot90 |> rot90 |> rot90 |> rot90 = array2D [[1;
 test <@ array2D [[1;2];[3;4]] |> flipHorizontal = array2D [[|3; 4|]; [|1; 2|]]  @>
 test <@ array2D [[1;2];[3;4]] |> flipVertical = array2D [[|2; 1|]; [|4; 3|]]  @>
 test <@ array2D [[1;2];[3;4]] |> borders =[[|1; 2|]; [|3; 4|]; [|1; 3|]; [|2; 4|]]  @>
+test <@ solve example = 20899048083289L @>
+test <@ solve input = 14129524957217L @>
 printfn "..done!"
