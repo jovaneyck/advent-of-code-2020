@@ -6,6 +6,7 @@ let example = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\example.txt"
 let input = System.IO.File.ReadAllText $"{__SOURCE_DIRECTORY__}\input.txt"  
 
 type Tile = { ID : int; contents : char[,] }
+type TileConfigurations = { ID : int; configurations : char[,] list }
 
 let m = array2D [[1;2];[3;4]]
 
@@ -52,23 +53,26 @@ let configurations tile =
      tile |> rot90
      tile |> rot90 |> rot90
      tile |> rot90 |> rot90 |> rot90]
-    |> List.collect (fun t -> [t; flipHorizontal t; flipVertical t])
-    |> List.distinct //PERFORMANCE PROBLEM: this contains duplicate configurations!
+    |> List.collect (fun t -> [t; flipHorizontal t])
 
-let nbUnmatchedBorders tile tiles = 
+let nbUnmatchedBorders tile (configs : TileConfigurations list) = 
     let bords = borders tile.contents
-    let configs = tiles |> List.collect (fun t -> configurations t.contents)
-    let bordsPerConf = configs |> Seq.map borders
     let nbMatchesPerBorder =
         bords
-        |> Seq.map (fun border -> bordsPerConf |> Seq.filter (fun cb -> cb |> List.contains border) |> Seq.length)
+        |> Seq.map (fun border -> 
+            configs 
+            |> Seq.filter (fun config -> 
+                config.configurations 
+                |> List.exists (fun c -> c |> borders |> List.contains border)) 
+            |> Seq.length)
     nbMatchesPerBorder |> Seq.filter ((=) 0) |> Seq.length
 
 let solve input =
     let tiles = parse input
+    let configs = tiles |> List.map (fun t -> { ID = t.ID; configurations = configurations t.contents})
     let corners = 
         tiles
-        |> List.filter (fun t -> nbUnmatchedBorders t (tiles |> List.except [t]) = 2)
+        |> List.filter (fun t -> nbUnmatchedBorders t (configs |> List.filter (fun c ->  c.ID <> t.ID)) = 2)
 
     corners |> Seq.map (fun t -> int64 t.ID) |> Seq.reduce (*)
 
