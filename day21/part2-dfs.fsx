@@ -37,7 +37,6 @@ let doesNotContainAllergens allergens ingredient =
     allergens
     |> List.forall (noMatch ingredient)
 
-#time "on"
 let notContainingAllergens = 
     ingredients
     |> List.distinct
@@ -66,10 +65,10 @@ let validMapping allergen ingredient =
     recipesWithAllergen |> List.forall (fun recipe -> recipe.ingredients |> List.contains ingredient)
 
 let rec tryOptions acc candidatesPerAllergen ingredients allergen =
-    printfn "We have multiple options for %s: %A" allergen ingredients
+    //printfn "We have multiple options for %s: %A" allergen ingredients
     match ingredients with
     | [] -> 
-        printfn "Uh oh, we have exhausted our options!"
+        //printfn "Uh oh, we have exhausted our options!"
         None
     | i :: is -> 
         //more than one option for this allergen, we need to do a bit of searching, just trying a naive DFS
@@ -79,7 +78,7 @@ let rec tryOptions acc candidatesPerAllergen ingredients allergen =
             |> Map.remove allergen
             |> Map.map (fun _ ingrs -> ingrs |> List.except [i])
         let nextAcc = (allergen, i) :: acc
-        printfn "We'll try option %s for %s" i allergen
+        //printfn "We'll try option %s for %s" i allergen
         if validMapping allergen i |> not 
         then tryOptions acc candidatesPerAllergen is allergen
         else 
@@ -96,11 +95,11 @@ and findMatches acc candidatesPerAllergen =
                 |> Seq.sortBy (fun (allergen, ingredients) -> ingredients |> Seq.length) 
                 |> Seq.head
             let allergen, ingredients = mostConstrained
-            printfn "%s is the most constrained allergen with options: %A" allergen ingredients
+            //printfn "%s is the most constrained allergen with options: %A" allergen ingredients
             match ingredients with
             | [] -> None
             | [i] ->
-                printfn "%s can only match with %s, easy!" allergen i
+                //printfn "%s can only match with %s, easy!" allergen i
                 //only one option, we found a match for free!
                 let nextAcc = (allergen, i) :: acc
                 let nextLookup = 
