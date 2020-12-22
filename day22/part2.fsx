@@ -54,7 +54,7 @@ let parsed = parse input
 #time "on"
 let winner = playGame Set.empty parsed 
 
-//The data structure I was calling for was Queue, but that turned out to be a minor improvement
+//The data structure I was looking for was Queue, but that turned out to be a minor improvement (and incompatible with the real winner outlined below)
 //The real win was in using a different structure to keep track of history:
 //Immutable sets based on binary trees, where elements are ordered by F# generic comparison. By default comparison is the F# structural comparison
 //=> O(logn) lookups/inserts!
