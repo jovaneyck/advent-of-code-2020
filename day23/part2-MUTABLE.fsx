@@ -58,7 +58,7 @@ let move n (current : LinkedList) =
     move n current
 
 #time "on"
-let final = move 10_000_000 start
+let final = move 10_000_000 start //Real: 00:00:43.764, CPU: 00:00:44.156, GC gen0: 541, gen1: 138, gen2: 5
 
 let one = valuesToNodes |> Map.find 1
 let part2 = (int64 one.next.Value.value) * (int64 one.next.Value.next.Value.value)
