@@ -19,8 +19,7 @@ let colorAt state location =
     | false -> White
 let makeBlack = Set.add
 let makeWhite = Set.remove
-let countBlackTiles state = 
-    state |> Set.count
+let countBlackTiles state = state |> Set.count
 
 let parsePath (path : string) =
     let rec parsePath (path : char list) =
@@ -64,50 +63,53 @@ let neighbours (x,y,z) =
         [(1,1,0);(1,0,-1);(0,-1,-1);(-1,-1,0);(-1,0,1);(0,1,1)]
     offsets |> List.map (fun (dx,dy,dz) -> (x+dx,y+dy,z+dz))
     
-let applyRules (state : State) (location : int*int*int) : State =
+let nextColorFor (state : State) (location : int*int*int) : Color =
     let nbBlackNeighbours = 
         neighbours location
         |> List.map (colorAt state)
         |> List.filter (function | Black -> true | _ -> false)
         |> List.length
     let hexColor = colorAt state location
-
-    let update =
+    let nextColor =
         match hexColor, nbBlackNeighbours with
         | Black, 0 -> 
-            printfn $"making {location} white because it is black and has no black neighbours"
-            state |> makeWhite location
+            //printfn $"making {location} white because it is black and has no black neighbours"
+            White
         | Black, n when n>2 -> 
-            printfn $"making {location} white because it is black and has {n} black neighbours"
-            state |> makeWhite location
+            //printfn $"making {location} white because it is black and has {n} black neighbours"
+            White
         | White, 2 -> 
-            printfn $"making {location} black because it is white and has 2 black neighbours"
-            state |> makeBlack location
-        | _ -> state
-    update
+            //printfn $"making {location} black because it is white and has 2 black neighbours"
+            Black
+        | color,_ -> color
+    nextColor
+
+let applyColor state (location, color) =
+    match color with
+    | White -> state |> makeWhite location
+    | Black -> state |> makeBlack location
 
 let nextDay (state : State) =
     let grid = state |> Set.toList
     let hexes = 
         grid @ (grid  |> List.collect neighbours)
         |> Set.ofList
-    hexes
-    |> Set.fold applyRules state //BUG! we don't want to apply rules on a half-updated tileset!!!
+    let updates =
+        hexes
+        |> Seq.map (fun h -> h, nextColorFor state h)
+    updates
+    |> Seq.fold applyColor state
 
 let rec days n state =
-    printfn "%d: %d" (100-n) (countBlackTiles state)
-    if n = 1
+    //printfn "%d: %d" (100-n) (countBlackTiles state)
+    if n = 0
     then state
     else days (n-1) (nextDay state)
 
-let paths = example |> Seq.map parsePath |> Seq.toList
+let paths = input |> Seq.map parsePath |> Seq.toList
 let initial =
     paths
     |> List.fold flipTile Set.empty
-
-initial |> countBlackTiles
-initial |> nextDay |> countBlackTiles
-initial |> nextDay |> Set.toList
 
 let part2 = days 100 initial |> countBlackTiles
 
