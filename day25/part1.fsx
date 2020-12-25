@@ -28,11 +28,8 @@ let encrypt subject_number loop_size =
 let find_loop_size public_key =
     1 + (public_keys |> Seq.findIndex ((=) public_key)) |> int64
 
-//13467729L
-//3020524L
 let card_loop_size =  find_loop_size input.[1]
-encrypt input.[0] card_loop_size
-//9714832
+let result = encrypt input.[0] card_loop_size //9714832
 
 printf "Test.."
 printfn "..done!"
