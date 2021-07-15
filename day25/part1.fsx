@@ -17,7 +17,8 @@ let public_keys =
             yield nnn
             yield! keys nnn
         }
-    keys 1L
+    keys 1L 
+    |> Seq.cache
 
 let encrypt subject_number loop_size =
     let rec encrypt value loop_size =
