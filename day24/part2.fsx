@@ -4,6 +4,9 @@ open Swensen.Unquote
 //We're using 3D coordinates to represent locations in the hexagonal grid
 //https://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/AV0405/MARTIN/Hex.pdf
 
+//GREAT intro to hex grids:
+//https://www.redblobgames.com/grids/hexagons/
+
 let input = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"  
 let example = System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\example.txt"  
 
